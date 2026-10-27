@@ -13,9 +13,14 @@ import java.util.Optional;
 public class TelemetryService {
 
     private final SensorReadingRepository repository;
+    private final EventDetectionService eventDetectionService;
 
-    public TelemetryService(SensorReadingRepository repository) {
+    public TelemetryService(
+            SensorReadingRepository repository,
+            EventDetectionService eventDetectionService) {
+
         this.repository = repository;
+        this.eventDetectionService = eventDetectionService;
     }
 
     @Transactional
@@ -33,19 +38,13 @@ public class TelemetryService {
 
         SensorReading saved = repository.save(reading);
 
-        if (saved.isPanicPressed()) {
-            System.out.println(
-                    "ALERTA CRÍTICO: botão de pânico acionado pelo dispositivo "
-                            + saved.getDeviceId()
-            );
-        }
-
-        if (saved.isMotionDetected()) {
-            System.out.println(
-                    "Movimento detectado pelo dispositivo "
-                            + saved.getDeviceId()
-            );
-        }
+        eventDetectionService.process(
+                request.deviceId(),
+                request.motionDetected(),
+                request.doorOpen(),
+                request.panicPressed(),
+                request.temperature()
+        );
 
         return saved;
     }
